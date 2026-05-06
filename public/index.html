@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Polymarket Newsletter Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #00ff87;
+    --accent2: #ff6b35;
+    --accent3: #7c6af7;
+    --text: #e8e8f0;
+    --muted: #5a5a72;
+    --up: #00ff87;
+    --down: #ff4d6d;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 24px;
+    background-image:
+      radial-gradient(ellipse at 20% 10%, rgba(124, 106, 247, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 90%, rgba(0, 255, 135, 0.05) 0%, transparent 50%);
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-area h1 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .logo-area h1 span { color: var(--accent); }
+
+  .logo-area p {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent);
+    padding: 6px 12px;
+    border: 1px solid rgba(0,255,135,0.25);
+    border-radius: 4px;
+  }
+
+  .live-dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 10px 16px;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .markets-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .market-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    gap: 16px;
+    align-items: center;
+    animation: slideIn 0.4s ease forwards;
+    opacity: 0;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.2s;
+  }
+
+  .market-card:hover { border-color: rgba(124,106,247,0.4); }
+
+  .market-card:nth-child(1){animation-delay:0.05s}
+  .market-card:nth-child(2){animation-delay:0.1s}
+  .market-card:nth-child(3){animation-delay:0.15s}
+  .market-card:nth-child(4){animation-delay:0.2s}
+  .market-card:nth-child(5){animation-delay:0.25s}
+  .market-card:nth-child(6){animation-delay:0.3s}
+  .market-card:nth-child(7){animation-delay:0.35s}
+  .market-card:nth-child(8){animation-delay:0.4s}
+  .market-card:nth-child(9){animation-delay:0.45s}
+  .market-card:nth-child(10){animation-delay:0.5s}
+
+  @keyframes slideIn {
+    from{opacity:0;transform:translateY(10px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+
+  .rank {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .market-info { min-width: 0; }
+
+  .market-question {
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.35;
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .market-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .meta-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    background: rgba(255,255,255,0.04);
+    padding: 2px 7px;
+    border-radius: 3px;
+  }
+
+  .volume-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+
+  .volume-label span { color: var(--text); }
+
+  .market-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    min-width: 110px;
+  }
+
+  .yes-price {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .price-bar-wrap {
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .price-bar {
+    height: 100%;
+    border-radius: 2px;
+  }
+
+  .change-pill {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+
+  .change-up { background: rgba(0,255,135,0.1); color: var(--up); border: 1px solid rgba(0,255,135,0.2); }
+  .change-down { background: rgba(255,77,109,0.1); color: var(--down); border: 1px solid rgba(255,77,109,0.2); }
+  .change-flat { background: rgba(90,90,114,0.15); color: var(--muted); border: 1px solid rgba(90,90,114,0.2); }
+
+  .generate-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(124,106,247,0.2), rgba(0,255,135,0.1));
+    border: 1px solid rgba(124,106,247,0.4);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 24px;
+  }
+
+  .generate-btn:hover {
+    background: linear-gradient(135deg, rgba(124,106,247,0.35), rgba(0,255,135,0.2));
+    transform: translateY(-1px);
+  }
+
+  .generate-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .newsletter-output {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    display: none;
+  }
+
+  .newsletter-output.visible { display: block; }
+
+  .newsletter-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .copy-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    background: none;
+    border: 1px solid rgba(0,255,135,0.3);
+    border-radius: 4px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .copy-btn:hover { background: rgba(0,255,135,0.1); }
+
+  .newsletter-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    line-height: 1.8;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+
+  .past-newsletter {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .past-newsletter:hover { border-color: rgba(124,106,247,0.4); }
+
+  .past-newsletter-date {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .past-newsletter-preview {
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 100;
+    padding: 40px 24px;
+    overflow-y: auto;
+  }
+
+  .modal-overlay.visible { display: block; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .close-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+
+  .loading-state {
+    text-align: center;
+    padding: 40px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .spinner {
+    width: 24px; height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  footer {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  footer p {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--muted);
+  }
+
+  .refresh-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--accent3);
+    background: none;
+    border: 1px solid rgba(124,106,247,0.3);
+    border-radius: 4px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .refresh-btn:hover { background: rgba(124,106,247,0.1); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-area">
+    <h1>POLY<span>WATCH</span></h1>
+    <p>POLYMARKET SIGNAL DASHBOARD + NEWSLETTER GENERATOR</p>
+  </div>
+  <div class="live-badge">
+    <div class="live-dot"></div>
+    LIVE DATA
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('markets')">MARKETS</button>
+  <button class="tab" onclick="switchTab('newsletter')">NEWSLETTER</button>
+  <button class="tab" onclick="switchTab('archive')">ARCHIVE</button>
+</div>
+
+<!-- MARKETS TAB -->
+<div class="tab-content active" id="tab-markets">
+  <div class="section-label">TOP 10 MARKETS · SORTED BY VOLUME</div>
+  <div class="markets-grid" id="markets-container">
+    <div class="loading-state"><div class="spinner"></div>FETCHING MARKET DATA...</div>
+  </div>
+  <footer>
+    <p>DATA · POLYMARKET GAMMA API</p>
+    <div style="display:flex;gap:8px;align-items:center">
+      <p id="last-updated" style="font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--muted)"></p>
+      <button class="refresh-btn" onclick="loadMarkets()">↻ REFRESH</button>
+    </div>
+  </footer>
+</div>
+
+<!-- NEWSLETTER TAB -->
+<div class="tab-content" id="tab-newsletter">
+  <div class="section-label">GENERATE MORNING BREW STYLE DIGEST</div>
+  <button class="generate-btn" id="generate-btn" onclick="generateNewsletter()">
+    ✦ GENERATE TODAY'S NEWSLETTER
+  </button>
+  <div class="newsletter-output" id="newsletter-output">
+    <div class="newsletter-toolbar">
+      <span class="section-label" style="margin:0">GENERATED NEWSLETTER</span>
+      <button class="copy-btn" onclick="copyNewsletter()">⎘ COPY FOR BEEHIIV</button>
+    </div>
+    <div class="newsletter-text" id="newsletter-text"></div>
+  </div>
+</div>
+
+<!-- ARCHIVE TAB -->
+<div class="tab-content" id="tab-archive">
+  <div class="section-label">PAST NEWSLETTERS</div>
+  <div id="archive-container">
+    <div class="loading-state"><div class="spinner"></div>LOADING ARCHIVE...</div>
+  </div>
+</div>
+
+<!-- Modal for past newsletters -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="section-label" style="margin:0" id="modal-date"></span>
+      <div style="display:flex;gap:8px">
+        <button class="copy-btn" onclick="copyModalNewsletter()">⎘ COPY</button>
+        <button class="close-btn" onclick="closeModalDirect()">✕ CLOSE</button>
+      </div>
+    </div>
+    <div class="newsletter-text" id="modal-text"></div>
+  </div>
+</div>
+
+<script>
+  let currentModalText = '';
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    if (tab === 'archive') loadArchive();
+  }
+
+  function formatVolume(v) {
+    if (v >= 1e6) return '$' + (v / 1e6).toFixed(2) + 'M';
+    if (v >= 1e3) return '$' + (v / 1e3).toFixed(1) + 'K';
+    return '$' + parseFloat(v).toFixed(0);
+  }
+
+  async function loadMarkets() {
+    const container = document.getElementById('markets-container');
+    container.innerHTML = `<div class="loading-state"><div class="spinner"></div>FETCHING MARKET DATA...</div>`;
+    try {
+      const res = await fetch('/api/markets');
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      container.innerHTML = '';
+      data.markets.forEach((m, i) => {
+        const priceColor = m.yesPrice >= 50 ? 'var(--up)' : 'var(--down)';
+        let changePill = '';
+        if (m.priceChange !== null) {
+          const cls = m.priceChange > 0.1 ? 'change-up' : m.priceChange < -0.1 ? 'change-down' : 'change-flat';
+          changePill = `<span class="change-pill ${cls}">${m.priceChange > 0 ? '+' : ''}${m.priceChange}%</span>`;
+        } else {
+          changePill = `<span class="change-pill change-flat">—</span>`;
+        }
+
+        const card = document.createElement('a');
+        card.className = 'market-card';
+        card.href = m.slug ? `https://polymarket.com/market/${m.slug}` : '#';
+        card.target = '_blank';
+        card.rel = 'noopener noreferrer';
+        card.innerHTML = `
+          <div class="rank">#${i+1}</div>
+          <div class="market-info">
+            <div class="market-question" title="${m.question}">${m.question}</div>
+            <div class="market-meta">
+              ${m.category ? `<span class="meta-tag">${m.category.toUpperCase()}</span>` : ''}
+              <span class="volume-label">VOL: <span>${formatVolume(m.volume)}</span></span>
+              <span class="volume-label">24H: <span>${formatVolume(m.volume24h)}</span></span>
+            </div>
+          </div>
+          <div class="market-stats">
+            <span class="yes-price" style="color:${priceColor}">${m.yesPrice}¢</span>
+            <div class="price-bar-wrap">
+              <div class="price-bar" style="width:${m.yesPrice}%;background:${priceColor};opacity:0.7"></div>
+            </div>
+            ${changePill}
+          </div>`;
+        container.appendChild(card);
+      });
+
+      document.getElementById('last-updated').textContent =
+        'UPDATED ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    } catch (err) {
+      container.innerHTML = `<div class="loading-state" style="color:var(--down)">⚠ ${err.message}</div>`;
+    }
+  }
+
+  async function generateNewsletter() {
+    const btn = document.getElementById('generate-btn');
+    const output = document.getElementById('newsletter-output');
+    const text = document.getElementById('newsletter-text');
+
+    btn.disabled = true;
+    btn.textContent = '⏳ GENERATING...';
+    output.classList.remove('visible');
+
+    try {
+      const res = await fetch('/api/generate', { method: 'POST' });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      text.textContent = data.newsletter;
+      output.classList.add('visible');
+    } catch (err) {
+      alert('Error generating newsletter: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '✦ GENERATE TODAY\'S NEWSLETTER';
+    }
+  }
+
+  function copyNewsletter() {
+    const text = document.getElementById('newsletter-text').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = '✓ COPIED!';
+      setTimeout(() => btn.textContent = '⎘ COPY FOR BEEHIIV', 2000);
+    });
+  }
+
+  async function loadArchive() {
+    const container = document.getElementById('archive-container');
+    container.innerHTML = `<div class="loading-state"><div class="spinner"></div>LOADING ARCHIVE...</div>`;
+    try {
+      const res = await fetch('/api/newsletters');
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      if (!data.newsletters.length) {
+        container.innerHTML = `<div class="loading-state">NO NEWSLETTERS YET. GENERATE YOUR FIRST ONE!</div>`;
+        return;
+      }
+
+      container.innerHTML = '';
+      data.newsletters.forEach(n => {
+        const date = new Date(n.date).toLocaleString();
+        const preview = n.newsletter.split('\n')[0] || 'Newsletter';
+        const div = document.createElement('div');
+        div.className = 'past-newsletter';
+        div.innerHTML = `
+          <div class="past-newsletter-date">${date}</div>
+          <div class="past-newsletter-preview">${preview}</div>`;
+        div.onclick = () => openModal(date, n.newsletter);
+        container.appendChild(div);
+      });
+    } catch (err) {
+      container.innerHTML = `<div class="loading-state" style="color:var(--down)">⚠ ${err.message}</div>`;
+    }
+  }
+
+  function openModal(date, text) {
+    currentModalText = text;
+    document.getElementById('modal-date').textContent = date;
+    document.getElementById('modal-text').textContent = text;
+    document.getElementById('modal-overlay').classList.add('visible');
+  }
+
+  function closeModal(e) {
+    if (e.target === document.getElementById('modal-overlay')) closeModalDirect();
+  }
+
+  function closeModalDirect() {
+    document.getElementById('modal-overlay').classList.remove('visible');
+  }
+
+  function copyModalNewsletter() {
+    navigator.clipboard.writeText(currentModalText).then(() => {
+      const btn = document.querySelector('.modal .copy-btn');
+      btn.textContent = '✓ COPIED!';
+      setTimeout(() => btn.textContent = '⎘ COPY', 2000);
+    });
+  }
+
+  loadMarkets();
+</script>
+</body>
+</html>

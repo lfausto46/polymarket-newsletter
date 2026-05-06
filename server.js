@@ -1,27 +1,14 @@
 require('dotenv').config();
 const express = require('express');
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-const cron = require('node-cron');
 const path = require('path');
-const fs = require('fs');
 
 const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-// Store for snapshots and newsletters
-const DATA_FILE = 'data.json';
-
-function loadData() {
-  if (fs.existsSync(DATA_FILE)) {
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-  }
-  return { snapshots: [], newsletters: [] };
-}
-
-function saveData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-}
+// In-memory storage
+let newsletters = [];
 
 // Fetch top markets from Polymarket
 async function fetchMarkets() {
@@ -45,32 +32,16 @@ async function fetchMarkets() {
       slug: m.slug,
       category: m.category || 'General',
       yesPrice,
-      volume: volume,
-      volume24h: volume24h,
+      volume,
+      volume24h,
       priceChange,
       timestamp: new Date().toISOString()
     };
   });
 }
 
-// Save a daily snapshot
-async function takeSnapshot() {
-  const data = loadData();
-  const markets = await fetchMarkets();
-  const snapshot = {
-    date: new Date().toISOString().split('T')[0],
-    markets
-  };
-  data.snapshots.push(snapshot);
-  // Keep last 30 days only
-  if (data.snapshots.length > 30) data.snapshots.shift();
-  saveData(data);
-  console.log('Snapshot saved:', snapshot.date);
-  return markets;
-}
-
 // Generate newsletter with Claude
-async function generateNewsletter(markets, previousMarkets) {
+async function generateNewsletter(markets) {
   const formatVolume = (v) => {
     if (v >= 1e6) return '$' + (v / 1e6).toFixed(2) + 'M';
     if (v >= 1e3) return '$' + (v / 1e3).toFixed(1) + 'K';
@@ -78,14 +49,11 @@ async function generateNewsletter(markets, previousMarkets) {
   };
 
   const marketSummary = markets.map((m, i) => {
-    const prev = previousMarkets?.find(p => p.slug === m.slug);
-    const volChange = prev ? ((m.volume - prev.volume) / prev.volume * 100).toFixed(1) : null;
     return `${i + 1}. "${m.question}"
    - YES price: ${m.yesPrice}¢ ${m.priceChange ? `(${m.priceChange > 0 ? '+' : ''}${m.priceChange}% today)` : ''}
    - Total Volume: ${formatVolume(m.volume)}
    - 24h Volume: ${formatVolume(m.volume24h)}
-   - Category: ${m.category}
-   ${volChange ? `- Volume change vs yesterday: ${volChange}%` : ''}`;
+   - Category: ${m.category}`;
   }).join('\n\n');
 
   const prompt = `You are a witty, sharp financial newsletter writer in the style of Morning Brew. 
@@ -129,8 +97,6 @@ Keep it under 500 words. Make it something people actually want to read.`;
 }
 
 // API Routes
-
-// Get live markets
 app.get('/api/markets', async (req, res) => {
   try {
     const markets = await fetchMarkets();
@@ -140,45 +106,26 @@ app.get('/api/markets', async (req, res) => {
   }
 });
 
-// Generate newsletter on demand
 app.post('/api/generate', async (req, res) => {
   try {
-    const data = loadData();
     const markets = await fetchMarkets();
-    const previousMarkets = data.snapshots.length > 1
-      ? data.snapshots[data.snapshots.length - 2].markets
-      : null;
-
-    const newsletter = await generateNewsletter(markets, previousMarkets);
-
-    const entry = {
-      date: new Date().toISOString(),
-      newsletter,
-      markets
-    };
-    data.newsletters.push(entry);
-    if (data.newsletters.length > 30) data.newsletters.shift();
-    saveData(data);
-
+    const newsletter = await generateNewsletter(markets);
+    const entry = { date: new Date().toISOString(), newsletter, markets };
+    newsletters.unshift(entry);
+    if (newsletters.length > 30) newsletters.pop();
     res.json({ success: true, newsletter });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// Get past newsletters
 app.get('/api/newsletters', (req, res) => {
-  const data = loadData();
-  res.json({ success: true, newsletters: data.newsletters.reverse() });
-});
-
-// Cron job: take snapshot every day at 7am
-cron.schedule('0 7 * * *', async () => {
-  console.log('Running daily snapshot...');
-  await takeSnapshot();
+  res.json({ success: true, newsletters });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+module.exports = app;
